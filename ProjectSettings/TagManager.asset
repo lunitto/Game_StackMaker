@@ -3,7 +3,14 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Brick
+  - Wall
+  - Bridge
+  - StackBrick
+  - BridgeBrick
+  - Winbox
+  - Chest
   layers:
   - Default
   - TransparentFX
