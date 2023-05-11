@@ -11,6 +11,8 @@ TagManager:
   - BridgeBrick
   - Winbox
   - Chest
+  - Level
+  - LineBridge
   layers:
   - Default
   - TransparentFX

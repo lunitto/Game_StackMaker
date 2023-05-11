@@ -1,47 +1,54 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player : MonoBehaviour
+public class Player : LevelManager
 {
-    [SerializeField] Transform spawnBrickTransform;
-    [SerializeField] GameObject brickPrefab;
     [SerializeField] GameObject playerGameObj;
-    [SerializeField] float offset = 0.2f;
-    [SerializeField] private GameObject StackParent;
-    [SerializeField] private GameObject BrickPoint;
-    [SerializeField] private GameObject Bridge;
-    [SerializeField] private GameObject LinePoint;
+    [SerializeField] float offset = 0.25f;
     [SerializeField] private Animator anim;
-
     private Rigidbody rb;
-    private Vector3 moveDirection;
     private float speed = 10f;
-    private Vector3 startPosition;
     private int countBricks = 0;
-    private int countLine = 0;
     private string currentAnimName;
-
     private List<GameObject> bricksList = new List<GameObject>();
-
     public bool isMoveOnBridge = false;
     public DetectSwipe swipe;
+    public Vector3 moveDirection;
 
     // Start is called before the first frame update
     void Start()
     {
-        startPosition = transform.position;
         rb = GetComponent<Rigidbody>();
 
         swipe.onSwipeDown += MoveDown;
         swipe.onSwipeUp += MoveUp;
         swipe.onSwipeLeft += MoveLeft;
         swipe.onSwipeRight += MoveRight;
+
+        inGameLevel = 1;
+        coin = 0;
+        InstatiateMapLevel(inGameLevel);
+        OnInit();
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
         rb.velocity = moveDirection * speed;
+        if (countBricks < 0)
+        {
+            RePlay();
+        }
+    }
+
+    public override void OnInit()
+    {
+        countBricks = 0;
+        bricksList.Clear();
+        playerGameObj.transform.rotation = Quaternion.Euler(new Vector3(0f, -15f, 0f));
+        moveDirection = new Vector3(0, 0, 0);
+        UIManager.instance.WinPanel(false);      
     }
 
     public void Move(Vector2 moveDirection)
@@ -84,32 +91,35 @@ public class Player : MonoBehaviour
             //Debug.Log("brick");
             ChangeAnim("Move");
 
-            Invoke(nameof(ResetAnim), 0.25f);
+            Invoke(nameof(ResetAnim), 0.15f);
             countBricks++;
             other.gameObject.tag = "StackBrick";
             AddBrick(other.gameObject);
         }
-        else if (other.tag == "BridgeBrick")
+        else if (other.tag == "LineBridge")
         {
-            ChangeAnim("Move");
-
-            Invoke(nameof(ResetAnim), 0.25f);
-            other.gameObject.tag = "Untagged";
-            //other.enabled = false;
-            RemoveBrick();
-
+            
+            if (other.TryGetComponent<LineBridge>(out LineBridge brickOfLineBridge))
+            {
+                brickOfLineBridge.ShowBrick();
+                ChangeAnim("Move");
+                Invoke(nameof(ResetAnim), 0.15f);
+                other.gameObject.tag = "Untagged";
+                //other.enabled = false;
+                //RemoveBrick();
+                DestroyBrick();
+            }
         }
         else if (other.tag == "Winbox")
         {
             isMoveOnBridge = true;
             ChangeAnim("Win");
+            Invoke(nameof(ResetAnim), 5f);
+            ClearBrick();
+            StartCoroutine(DelayShowWinPanel(4f));
         }
-
-        if (other.tag == "Chest")
-        {
-            ChangeAnim("Win");
-            Debug.Log("nhay");           
-        }
+               
+                  
     }
 
     private void OnTriggerExit(Collider other)
@@ -121,53 +131,42 @@ public class Player : MonoBehaviour
         }
     }
 
-    private void InstantiateBrick()
-    {
-        Vector3 offsetBrick = new Vector3(0f, offset * (countBricks - 1), 0f);
-
-        GameObject newBrick = Instantiate(brickPrefab, spawnBrickTransform);
-        newBrick.transform.position += offsetBrick;
-        bricksList.Add(newBrick);
-        playerGameObj.transform.localPosition = new Vector3(0f, 0.5f + offsetBrick.y, -5f);
-    }
-
     private void DestroyBrick()
     {
         countBricks--;
-        GameObject brickDestroy = bricksList[countBricks];
-        bricksList.Remove(brickDestroy);
-        Destroy(brickDestroy);
-        playerGameObj.transform.localPosition = new Vector3(0f, 0.5f + offset * (countBricks - 1), -5f);
+        if (countBricks > 0)
+        {           
+            GameObject brickDestroy = bricksList[countBricks];
+            bricksList.Remove(brickDestroy);
+            Destroy(brickDestroy);
+            playerGameObj.transform.localPosition = new Vector3(0f, 0.15f + offset * (countBricks - 1), -5f);
+        }
     }
+        
 
     private void AddBrick(GameObject brick)
     {
-        //countBricks++;
-        //Vector3 offsetBrick = new Vector3(0f, offset * (countBricks - 0) + 0.5f, -5f);
-        brick.transform.SetParent(StackParent.transform);
-        brick.transform.localPosition = new Vector3(BrickPoint.transform.localPosition.x, BrickPoint.transform.localPosition.y + offset * countBricks, BrickPoint.transform.localPosition.z);
-        playerGameObj.transform.localPosition = new Vector3(playerGameObj.transform.localPosition.x, playerGameObj.transform.localPosition.y + offset, playerGameObj.transform.localPosition.z);
+        brick.transform.SetParent(transform);
+        brick.transform.localPosition = new Vector3(0, 0.15f + offset * (countBricks-1), -5f); 
+        playerGameObj.transform.localPosition = new Vector3(0, 0.15f + offset * (countBricks - 1), -5f);
+       
+        bricksList.Add(brick);
 
     }
-    private void RemoveBrick()
-    {
-        countBricks--;
-        if (StackParent.transform.GetChild(countBricks + 1).gameObject.CompareTag("StackBrick"))
-        {
-
-            //Destroy(StackParent.transform.GetChild(countBricks+ 1).gameObject);
-            StackParent.transform.GetChild(countBricks + 1).gameObject.transform.SetParent(Bridge.transform);
-            Bridge.transform.GetChild(countLine + 1).gameObject.transform.position = new Vector3(LinePoint.transform.position.x, LinePoint.transform.position.y, LinePoint.transform.position.z + (float)countLine);
-            // StackParent.transform.GetChild(countBricks + 0).gameObject.transform.position=new Vector3(LinePoint.transform.position.x, 0f,LinePoint.transform.position.z - (float)countLine);
-            countLine++;
-            playerGameObj.transform.localPosition = new Vector3(playerGameObj.transform.localPosition.x, playerGameObj.transform.localPosition.y - offset, playerGameObj.transform.localPosition.z);
-        }
-
-    }
-
     private void ClearBrick()
     {
+        while(countBricks > 1)
+        {
+            DestroyBrick();            
+        }
+        playerGameObj.transform.rotation = Quaternion.Euler(new Vector3(0f,-150f, 0f));
+    }
 
+    private IEnumerator DelayShowWinPanel(float second)
+    {
+        yield return new WaitForSeconds(second);
+
+        UIManager.instance.WinPanel(true);
     }
 
     protected void ChangeAnim(string animName)
@@ -179,9 +178,34 @@ public class Player : MonoBehaviour
             anim.SetTrigger(currentAnimName);
         }
     }
-
-    private void ResetAnim()
+    public void ResetAnim()
     {
         ChangeAnim("Reset");
+    }
+    public void NextLevel()
+    {
+
+        inGameLevel++;
+        if (inGameLevel > listMapLevel.Count)
+        {
+            inGameLevel = 1;
+        }
+        coin += 50;
+        PlayerPrefs.SetInt("Coin", coin);
+        PlayerPrefs.Save();
+        UIManager.instance.SetCoin(coin);
+        UIManager.instance.SetLevel(inGameLevel);
+        //PlayerPrefs.Save();
+        DestroyMapLevel();
+        InstatiateMapLevel(inGameLevel);
+        OnInit();
+
+    }
+
+    public void RePlay()
+    {
+        DestroyMapLevel();
+        InstatiateMapLevel(inGameLevel);
+        OnInit();
     }
 }
