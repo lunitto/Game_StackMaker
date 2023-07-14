@@ -44,10 +44,13 @@ public class Player : LevelManager
 
     public override void OnInit()
     {
+        //base.OnInit();
         countBricks = 0;
         bricksList.Clear();
         playerGameObj.transform.rotation = Quaternion.Euler(new Vector3(0f, -15f, 0f));
         moveDirection = new Vector3(0, 0, 0);
+        UIManager.instance.SetCoin(coin);
+        UIManager.instance.SetLevel(inGameLevel);
         UIManager.instance.WinPanel(false);      
     }
 
@@ -116,7 +119,7 @@ public class Player : LevelManager
             ChangeAnim("Win");
             Invoke(nameof(ResetAnim), 5f);
             ClearBrick();
-            StartCoroutine(DelayShowWinPanel(4f));
+            StartCoroutine(DelayShowWinPanel(5f));
         }
                
                   
@@ -192,10 +195,9 @@ public class Player : LevelManager
         }
         coin += 50;
         PlayerPrefs.SetInt("Coin", coin);
-        PlayerPrefs.Save();
+        //PlayerPrefs.Save();
         UIManager.instance.SetCoin(coin);
         UIManager.instance.SetLevel(inGameLevel);
-        //PlayerPrefs.Save();
         DestroyMapLevel();
         InstatiateMapLevel(inGameLevel);
         OnInit();

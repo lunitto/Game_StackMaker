@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class UIManager : MonoBehaviour
 {
     public static UIManager instance;
-    public static string COIN_KEY = "Coin";
+    //public static string COIN_KEY = "Coin";
     [SerializeField] Text levelText;
     [SerializeField] Text coinText;
     [SerializeField] GameObject winPanel;
@@ -22,7 +22,7 @@ public class UIManager : MonoBehaviour
 
     public void SetLevel(int level)
     {
-        levelText.text = "Level " + level.ToString();
+        levelText.text = "Level: " + level.ToString();
     }
 
     public void SetCoin(int coin)
